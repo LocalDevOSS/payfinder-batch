@@ -1,0 +1,16 @@
+server.port: 8090
+
+spring.profiles.active: dev
+
+spring:
+  batch:
+    job:
+      initialize-schema: always
+      enabled: false
+
+open.api:
+  key: f6331b02fa084486b9e2de875558c3e0
+  store:
+    url: https://openapi.gg.go.kr/RegionMnyFacltStus
+    type: json
+    pSize: 100
