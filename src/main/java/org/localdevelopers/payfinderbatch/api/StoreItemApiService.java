@@ -64,8 +64,7 @@ public class StoreItemApiService {
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
             JsonNode tree = getTree(response.getBody());
-//            totalPageCount = parseTotalPageCount(tree);
-            totalPageCount = 2;
+            totalPageCount = parseTotalPageCount(tree);
             items = parseStoreItems(tree);
         } catch (Exception e) {
             logger.error(e.getMessage());
