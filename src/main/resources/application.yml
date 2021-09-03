@@ -6,7 +6,7 @@ spring:
   batch:
     job:
       initialize-schema: always
-      enabled: false
+      enabled: true
 
 open.api:
   key: f6331b02fa084486b9e2de875558c3e0

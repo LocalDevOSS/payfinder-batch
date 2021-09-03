@@ -4,3 +4,15 @@ spring:
       host: ec2-13-209-165-31.ap-northeast-2.compute.amazonaws.com
       port: 27017
       database: local
+
+logging:
+  pattern:
+    file: "%d{HH:mm:ss.SSS} [%-5level] %logger.%method:line%line - %msg%n"
+    rolling-file-name: "/logs/batch.%d{yyyy-MM-dd}.%i"
+  file:
+    name: /logs/batch.log
+    max-history: 30
+  level:
+    root: info
+    org:
+      springframework: debug
