@@ -42,25 +42,23 @@ public class StoreItemApiService {
 
     private int totalPageCount;
 
-    public List<StoreItem> fetchAll() {
+    public List<StoreItem> fetchBySiGunCode(final String siGunCode) {
         List<StoreItem> items = new ArrayList<>();
         totalPageCount = 1;
 
-        logger.info("===== start loading the store items from openapi =====");
+        logger.info("===== start fetching the store items from openapi where siGunCode is {} =====", siGunCode);
         for (int pIndex = 1; pIndex <= totalPageCount; ++pIndex) {
-            items.addAll(
-                    fetch(key, url, type, pIndex, pageSize)
-            );
-            logger.info("fetch progress (page): {} / {}", pIndex, totalPageCount);
+            items.addAll(fetch(key, url, type, pIndex, pageSize, siGunCode));
+            logger.info("progress fetching: {} / {} (pages)", pIndex, totalPageCount);
         }
-        logger.info("===== finished loading the store items from openapi =====");
+        logger.info("===== finished fetching the store items from openapi where siGunCode is {} =====", siGunCode);
         return items;
     }
 
-    private List<StoreItem> fetch(final String key, final String url, final String type, final int pageIndex, final int pageSize) {
+    private List<StoreItem> fetch(final String key, final String url, final String type, final int pageIndex, final int pageSize, final String siGunCode) {
         List<StoreItem> items = Collections.emptyList();
         try {
-            URI uri = makeURI(url, key, type, pageIndex, pageSize);
+            URI uri = makeURI(url, key, type, pageIndex, pageSize, siGunCode);
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
             JsonNode tree = getTree(response.getBody());
@@ -74,12 +72,14 @@ public class StoreItemApiService {
         }
     }
 
-    private URI makeURI(final String url, final String key, final String type, final int pageIndex, final int pageSize) throws URISyntaxException {
+    private URI makeURI(final String url, final String key, final String type, final int pageIndex, final int pageSize, final String siGunCode) throws URISyntaxException {
         final StringBuilder stringBuilder = new StringBuilder(url)
                 .append("?key=")
                 .append(key)
                 .append("&type=")
                 .append(type)
+                .append("&siGun_cd=")
+                .append(siGunCode)
                 .append("&pIndex=")
                 .append(pageIndex)
                 .append("&pSize=")
