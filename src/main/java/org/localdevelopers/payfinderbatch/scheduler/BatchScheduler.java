@@ -22,7 +22,7 @@ public class BatchScheduler {
     private final Job job;
     private final JobLauncher jobLauncher;
 
-    @Scheduled(cron = "0 25 11 * * *")
+    @Scheduled(cron = "0 35 13 * * *")
     public void launchJob() {
         try {
             jobLauncher.run(
