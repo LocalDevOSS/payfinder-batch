@@ -28,7 +28,7 @@ public class BatchScheduler {
     private final JobLauncher jobLauncher;
     private final MongoTemplate mongoTemplate;
 
-    @Scheduled(cron = "0 20 16 * * *")
+    @Scheduled(cron = "0 30 16 * * *")
     public void launchJob() {
         List<String> siGunCodes = readSiGunCodes();
         try {
