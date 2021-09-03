@@ -11,6 +11,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -34,9 +35,10 @@ public class BatchConfig {
     private final StoreItemApiService storeItemApiService;
 
     @Bean
+    @JobScope
     @PostConstruct
     public ItemReader<StoreItem> reader() {
-        return new StoreItemReader(storeItemApiService);
+        return new StoreItemReader(storeItemApiService, null);
     }
 
     @Bean
@@ -50,8 +52,8 @@ public class BatchConfig {
     }
 
     @Bean
-    public Step collectStoreItemsStep(ItemReader<StoreItem> reader, ItemWriter<Store> writer) {
-        return stepBuilderFactory.get("collectStoreItemsStep")
+    public Step updateStoreItemsStep(ItemReader<StoreItem> reader, ItemWriter<Store> writer) {
+        return stepBuilderFactory.get("updateStoreItemsStep")
                 .<StoreItem, Store>chunk(CHUNK_SIZE)
                 .reader(reader)
                 .processor(processor())
