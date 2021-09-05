@@ -7,6 +7,9 @@ spring:
     job:
       initialize-schema: always
       enabled: false
+    config:
+      chunkSize: 100
+      poolSize: 4
 
 open.api:
   key: f6331b02fa084486b9e2de875558c3e0

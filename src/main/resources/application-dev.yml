@@ -7,7 +7,7 @@ spring:
 
 logging:
   pattern:
-    file: "%d{HH:mm:ss.SSS} [%-5level] %logger.%method:line%line - %msg%n"
+    file: "%d{HH:mm:ss.SSS} %thread [%-5level] %logger.%method:line%line - %msg%n"
     rolling-file-name: "/logs/batch.%d{yyyy-MM-dd}.%i"
   file:
     name: /logs/batch.log
