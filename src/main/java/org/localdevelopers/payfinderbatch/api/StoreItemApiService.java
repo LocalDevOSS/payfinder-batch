@@ -46,12 +46,12 @@ public class StoreItemApiService {
         List<StoreItem> items = new ArrayList<>();
         totalPageCount = 1;
 
-        logger.info("===== start fetching the store items from openapi where siGunCode is {} =====", siGunCode);
+        logger.info("start fetching the store items from openapi where siGunCode is {}", siGunCode);
         for (int pIndex = 1; pIndex <= totalPageCount; ++pIndex) {
             items.addAll(fetch(key, url, type, pIndex, pageSize, siGunCode));
             logger.info("progress fetching: {} / {} (pages)", pIndex, totalPageCount);
         }
-        logger.info("===== finished fetching the store items from openapi where siGunCode is {} =====", siGunCode);
+        logger.info("finished fetching the store items from openapi where siGunCode is {}", siGunCode);
         return items;
     }
 

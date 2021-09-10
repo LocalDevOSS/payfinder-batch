@@ -1,39 +1,37 @@
 package org.localdevelopers.payfinderbatch.config;
 
-import lombok.RequiredArgsConstructor;
+import org.localdevelopers.payfinderbatch.StepOperator;
 import org.localdevelopers.payfinderbatch.api.StoreItemApiService;
 import org.localdevelopers.payfinderbatch.domain.Store;
-import org.localdevelopers.payfinderbatch.model.StoreItem;
-import org.localdevelopers.payfinderbatch.processor.StoreItemProcessor;
-import org.localdevelopers.payfinderbatch.reader.StoreItemReader;
-import org.localdevelopers.payfinderbatch.writer.StoreItemWriter;
+import org.localdevelopers.payfinderbatch.reader.StoreReader;
+import org.localdevelopers.payfinderbatch.service.StoreService;
+import org.localdevelopers.payfinderbatch.service.StoresFactory;
+import org.localdevelopers.payfinderbatch.writer.StoreWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.*;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.data.MongoItemWriter;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.JobScope;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
+import org.springframework.batch.item.support.SynchronizedItemStreamWriter;
 import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamWriterBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
 @EnableBatchProcessing
-@RequiredArgsConstructor
-@ComponentScan(basePackageClasses = {StoreItemApiService.class})
 public class BatchConfig {
-    private static final String STORE_ITEM_JOB = "StoreItem";
-
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final StoreItemApiService storeItemApiService;
+    private final StoreService storeService;
+    private final StoresFactory storesFactory;
 
     @Value("${spring.batch.config.chunkSize}")
     private int chunkSize;
@@ -41,26 +39,26 @@ public class BatchConfig {
     @Value("${spring.batch.config.poolSize}")
     private int poolSize;
 
-    @Bean(name = STORE_ITEM_JOB + "Reader")
-    @StepScope
-//    @PostConstruct
-    public SynchronizedItemStreamReader<StoreItem> reader(@Value("#{jobParameters[siGunCode]}") String siGunCode) {
-        return new SynchronizedItemStreamReaderBuilder<StoreItem>()
-                .delegate(new StoreItemReader(storeItemApiService, siGunCode))
+    public BatchConfig(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, StoreItemApiService storeItemApiService, StoreService storeService) {
+        this.jobBuilderFactory = jobBuilderFactory;
+        this.stepBuilderFactory = stepBuilderFactory;
+        this.storeService = storeService;
+        this.storesFactory = new StoresFactory(storeItemApiService, storeService);
+    }
+
+    public SynchronizedItemStreamReader<Store> reader(final StepOperator stepOperator) {
+        return new SynchronizedItemStreamReaderBuilder<Store>()
+                .delegate(new StoreReader(storesFactory, stepOperator))
                 .build();
     }
 
-    @Bean(name = STORE_ITEM_JOB + "Writer")
-    public MongoItemWriter<Store> writer(MongoTemplate mongoTemplate) {
-        return new StoreItemWriter(mongoTemplate);
+    public SynchronizedItemStreamWriter<Store> writer(final StepOperator stepOperator) {
+        return new SynchronizedItemStreamWriterBuilder<Store>()
+                .delegate(new StoreWriter(storeService, stepOperator))
+                .build();
     }
 
     @Bean
-    public StoreItemProcessor processor() {
-        return new StoreItemProcessor();
-    }
-
-    @Bean(name = STORE_ITEM_JOB + "TaskExecutor")
     public TaskExecutor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
@@ -71,23 +69,44 @@ public class BatchConfig {
         return executor;
     }
 
-    @Bean(name = STORE_ITEM_JOB + "Step")
+    @Bean
     @JobScope
-    public Step updateStoreItemsStep(ItemReader<StoreItem> reader, ItemWriter<Store> writer) {
-        return stepBuilderFactory.get(STORE_ITEM_JOB + "Step")
-                .<StoreItem, Store>chunk(chunkSize)
-                .reader(reader(null))
-                .processor(processor())
-                .writer(writer)
+    public Step loadStoresStep(@Value("#{jobParameters[siGunCode]}") String siGunCode) {
+        return stepBuilderFactory.get("loadStoresStep")
+                .tasklet((contribution, chunkContext) -> {
+                    storesFactory.loadStores(siGunCode);
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    @Bean
+    public Step saveStoresStep() {
+        return stepBuilderFactory.get("saveStoresStep")
+                .<Store, Store>chunk(chunkSize)
+                .reader(reader(StepOperator.SAVE))
+                .writer(writer(StepOperator.SAVE))
                 .taskExecutor(taskExecutor())
                 .throttleLimit(poolSize)
                 .build();
     }
 
-    @Bean(name = STORE_ITEM_JOB)
-    public Job updateStoreItemsJob(Step updateStoreItemsStep) {
-        return jobBuilderFactory.get(STORE_ITEM_JOB)
-                .start(updateStoreItemsStep)
+    @Bean
+    public Step deleteStoresStep() {
+        return stepBuilderFactory.get("deleteStoresStep")
+                .<Store, Store>chunk(chunkSize)
+                .reader(reader(StepOperator.DELETE))
+                .writer(writer(StepOperator.DELETE))
+                .taskExecutor(taskExecutor())
+                .throttleLimit(poolSize)
+                .build();
+    }
+
+    @Bean
+    public Job updateStoresJob() {
+        return jobBuilderFactory.get("updateStoresJob")
+                .start(loadStoresStep(null))
+                .next(saveStoresStep())
+                .next(deleteStoresStep())
                 .preventRestart()
                 .build();
     }

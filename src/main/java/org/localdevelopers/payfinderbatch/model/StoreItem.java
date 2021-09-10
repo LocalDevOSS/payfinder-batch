@@ -38,4 +38,8 @@ public class StoreItem {
 
     @JsonProperty("SIGUN_NM")
     private String siGunName;           // 시군명
+
+    public boolean isValid() {
+        return (name != null && roadNameAddress != null);
+    }
 }

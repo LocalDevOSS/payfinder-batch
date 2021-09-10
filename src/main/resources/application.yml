@@ -8,7 +8,7 @@ spring:
       initialize-schema: always
       enabled: false
     config:
-      chunkSize: 100
+      chunkSize: 1000
       poolSize: 4
 
 open.api:
@@ -16,4 +16,4 @@ open.api:
   store:
     url: https://openapi.gg.go.kr/RegionMnyFacltStus
     type: json
-    pSize: 100
+    pSize: 1000
